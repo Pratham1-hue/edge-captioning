@@ -3,7 +3,7 @@ from dataclasses import dataclass
 
 @dataclass
 class Config:
-    encoder_name: str = "google/vit-base-patch16-224-in21k"
+    encoder_name: str = "nlpconnect/vit-gpt2-image-captioning"
     decoder_name: str = "gpt2"
     max_seq_len: int = 32
     img_size: int = 224

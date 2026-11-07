@@ -1,16 +1,19 @@
 import torch
 import torch.nn as nn
-from transformers import ViTModel, GPT2LMHeadModel
+from transformers import VisionEncoderDecoderModel
 
 class ViTCaptioner(nn.Module):
     """
     Encoder-Decoder combining ViT spatial features with GPT-2 generation.
-    Projection layer aligns ViT patch dim (768) with GPT-2 embed dim (768).
+    Uses the pretrained nlpconnect/vit-gpt2-image-captioning checkpoint so the
+    cross-attention bridge between image features and tokens is actually trained.
     """
-    def __init__(self, encoder_name: str = "google/vit-base-patch16-224-in21k", decoder_name: str = "gpt2"):
+    def __init__(self, encoder_name: str = "nlpconnect/vit-gpt2-image-captioning", decoder_name: str = "gpt2"):
         super().__init__()
-        self.encoder = ViTModel.from_pretrained(encoder_name)
-        self.decoder = GPT2LMHeadModel.from_pretrained(decoder_name)
+        # Load the full pretrained fusion, then keep its trained halves
+        full = VisionEncoderDecoderModel.from_pretrained(encoder_name)
+        self.encoder = full.encoder
+        self.decoder = full.decoder
         
         enc_dim = self.encoder.config.hidden_size
         dec_dim = self.decoder.config.n_embd

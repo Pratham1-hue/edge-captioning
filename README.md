@@ -7,7 +7,7 @@ Ever needed image captions but couldn't afford to ship every photo off to some g
 You send it an image over HTTP, and it sends back a text description of what's in the picture. Behind the scenes:
 
 1. **ViT** (Vision Transformer) looks at the image and turns it into patch embeddings.
-2. A small projection layer lines those embeddings up with GPT-2's world.
+2. GPT-2's **cross-attention layers** attend to those image features — this fusion is pretrained on COCO Captions (the `nlpconnect/vit-gpt2-image-captioning` checkpoint), so the captions are trained, not random.
 3. **GPT-2** generates the caption one token at a time, using the image as its "context."
 4. The whole model gets traced to ONNX and dynamically quantized down to **INT8**, so inference runs fast on an ordinary CPU.
 
@@ -45,7 +45,7 @@ pip install -r requirements.txt
 python export_onnx.py
 ```
 
-This pulls `google/vit-base-patch16-224-in21k` and `gpt2` from Hugging Face, traces the combined model, and compresses the result. The script prints how much smaller the INT8 file ended up — usually a very satisfying number. The final INT8 model lands at `weights/model_int8.onnx`.
+This pulls the pretrained `nlpconnect/vit-gpt2-image-captioning` fusion (a ViT encoder and a GPT-2 decoder with trained cross-attention, fine-tuned on COCO Captions), traces the combined model, and compresses the result. In practice this shrinks the FP32 model (~914 MB including external data) down to roughly **232 MB of INT8 weights — about a 75% reduction**. The final INT8 model lands at `weights/model_int8.onnx`.
 
 ### 3. Run the API
 
@@ -90,20 +90,32 @@ To change the encoder/decoder pairing (say, a smaller ViT or a different decoder
 ## Tech stack
 
 - **PyTorch** — model definition and tracing
-- **Hugging Face Transformers** — ViT encoder, GPT-2 decoder, image processor, tokenizer
+- **Hugging Face Transformers** — ViT + GPT-2 fusion (`nlpconnect/vit-gpt2-image-captioning`), image processor, tokenizer
 - **ONNX / ONNX Runtime** — export, quantization, and CPU inference
 - **FastAPI + Uvicorn** — the serving layer
 - **Pillow** — image handling
 
 ## Demo
 
-Here's the service in action:
+Running the INT8 engine on a sample photo (4096×4096, plain CPU):
 
-| API response |
+```text
+$ py demo.py sample.jpg
+Loading INT8 ONNX engine (CPU)...
+Image: sample.jpg (4096x4096)
+--------------------------------------------------
+Caption: a yellow flower in a vase with a blue background
+Inference time: 3983 ms  (greedy decode, CPU)
+--------------------------------------------------
+```
+
+And here's where the screenshot of that session will live once dropped in:
+
+| API demo |
 |:---:|
 | ![API demo](docs/images/api-demo.png) |
 
-*(Screenshot coming soon — drop an image at `docs/images/api-demo.png` and it will render here.)*
+*(Drop your terminal or `/docs` screenshot at `docs/images/api-demo.png` and it will render here.)*
 
 ## Roadmap ideas
 

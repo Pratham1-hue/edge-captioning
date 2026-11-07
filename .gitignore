@@ -1,0 +1,14 @@
+# Generated model artifacts (too large for git — run export_onnx.py to build)
+weights/
+export_log.txt
+sample.jpg
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# OS
+Thumbs.db
+.DS_Store
